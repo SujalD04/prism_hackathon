@@ -1,0 +1,59 @@
+samsung-care-ai-backend/
+│── app/
+│   │── init.py
+│   │── main.py                 # Entry point (FastAPI app)
+│   │
+│   ├── core/                   # Core config & utilities
+│   │   │── config.py           # Env variables, API keys
+│   │   │── security.py         # Samsung Knox / JWT auth
+│   │   │── utils.py            # Helper functions
+│   │
+│   ├── db/                     # Database layer
+│   │   │── mongodb.py          # MongoDB connection
+│   │   │── schemas/            # Pydantic validation schemas
+│   │   │   │── device_schema.py
+│   │   │   │── log_schema.py
+│   │   │   │── prediction_schema.py
+│   │
+│   ├── agents/                 # AI Multi-Agent System
+│   │   │── init.py
+│   │   │── health_monitor.py          # Real-time diagnostics
+│   │   │── predictive_maintenance.py  # Predict failures
+│   │   │── service_coordination.py    # Repair scheduling
+│   │   │── user_interaction.py        # Conversational agent
+│   │   │── system_optimization.py     # Auto fixes & patches
+│   │
+│   ├── ml_models/              # ML & AI Models
+│   │   │── nlp_agent.py        # Rasa / BERT for conversational AI
+│   │   │── vision_agent.py     # OpenCV / TensorFlow models
+│   │   │── anomaly_detector.py # Predictive maintenance ML
+│   │   │── model_utils.py      # Load, save, preprocess data
+│   │
+│   ├── routes/                 # API Endpoints
+│   │   │── init.py
+│   │   │── devices.py          # Register, update, get device status
+│   │   │── logs.py             # Upload logs / sensor data
+│   │   │── predictions.py      # Fetch prediction results
+│   │   │── service.py          # Book repairs, manage tickets
+│   │   │── auth.py             # User login, Samsung Knox
+│   │
+│   ├── services/               # External APIs / Integrations
+│   │   │── samsung_cloud.py    # Sync with Samsung Cloud
+│   │   │── smartthings_api.py  # IoT integration
+│   │   │── knox_api.py         # Secure Knox API calls
+│   │   │── notification.py     # Push to Galaxy Watch / Mobile
+│   │
+│   ├── tests/                  # Unit & integration tests
+│   │   │── test_devices.py
+│   │   │── test_logs.py
+│   │   │── test_predictions.py
+│   │
+│   └── workers/                # Background jobs (Celery/Redis)
+│       │── scheduler.py        # Scheduled predictive checks
+│       │── task_queue.py       # Async job execution
+│
+│── requirements.txt
+│── README.md
+│── .env.example                # Example environment variables
+│── docker-compose.yml          # For containerized deployment
+│── Dockerfile
