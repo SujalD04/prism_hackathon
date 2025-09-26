@@ -1,6 +1,6 @@
 samsung-care-ai-backend/
 │── app/
-│   │── init.py
+│   │── _init_.py
 │   │── main.py                 # Entry point (FastAPI app)
 │   │
 │   ├── core/                   # Core config & utilities
@@ -9,14 +9,14 @@ samsung-care-ai-backend/
 │   │   │── utils.py            # Helper functions
 │   │
 │   ├── db/                     # Database layer
-│   │   │── mongodb.py          # MongoDB connection
+│   │   │── mongodb.py          # MongoDB connection (Atlas or local)
 │   │   │── schemas/            # Pydantic validation schemas
 │   │   │   │── device_schema.py
 │   │   │   │── log_schema.py
 │   │   │   │── prediction_schema.py
 │   │
 │   ├── agents/                 # AI Multi-Agent System
-│   │   │── init.py
+│   │   │── _init_.py
 │   │   │── health_monitor.py          # Real-time diagnostics
 │   │   │── predictive_maintenance.py  # Predict failures
 │   │   │── service_coordination.py    # Repair scheduling
@@ -30,7 +30,7 @@ samsung-care-ai-backend/
 │   │   │── model_utils.py      # Load, save, preprocess data
 │   │
 │   ├── routes/                 # API Endpoints
-│   │   │── init.py
+│   │   │── _init_.py
 │   │   │── devices.py          # Register, update, get device status
 │   │   │── logs.py             # Upload logs / sensor data
 │   │   │── predictions.py      # Fetch prediction results
@@ -55,5 +55,3 @@ samsung-care-ai-backend/
 │── requirements.txt
 │── README.md
 │── .env.example                # Example environment variables
-│── docker-compose.yml          # For containerized deployment
-│── Dockerfile
