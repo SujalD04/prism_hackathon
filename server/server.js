@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const { addSimulationData } = require('./routes/reports');
+const { addSimulationData, reportsStore } = require('./routes/reports');
 
 connectDB();
 
@@ -40,14 +40,16 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     const data = JSON.parse(message);
-    const { reportId, device } = data; // ✅ use reportId consistently
 
-    // Auto-capture predictive trigger data
+    // --- Trigger Events ---
     if (data.type === 'trigger' && data.event) {
-      if (!reportId) {
-        console.error('WebSocket message missing reportId:', data);
+      const { sessionId, device } = data;
+
+      if (!sessionId || !device) {
+        console.error('Trigger missing required fields:', data);
         return;
       }
+
       const reportData = {
         timestamp: new Date().toLocaleTimeString(),
         trigger: data.event,
@@ -59,24 +61,19 @@ wss.on('connection', (ws) => {
         forecast: data.forecast || [],
       };
 
-      // Directly update the report by reportId
-      const reportsStore = require('./routes/reports').reportsStore;
-      if (reportsStore[reportId]) {
-        reportsStore[reportId].predictive = reportData;
-      } else {
-        console.error('No report found for reportId:', reportId);
-      }
+      // Update existing report using sessionId and device
+      const updatedReportId = addSimulationData(sessionId, device, 'predictive', reportData);
+      console.log('✅ Updated report:', updatedReportId, reportData);
 
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(reportData));
+        ws.send(JSON.stringify({ reportId: updatedReportId, predictive: reportData }));
       }
     }
 
-    // Start Python simulation
-    if (data.type === 'start' && device) {
-      ws.reportId = reportId;
+    // --- Start Python Simulation ---
+    if (data.type === 'start' && data.device && data.sessionId) {
       safeKill();
-      console.log(`Starting simulation for device: ${device}, reportId: ${reportId}`);
+      console.log(`Starting simulation for device: ${data.device}, sessionId: ${data.sessionId}`);
 
       const pythonPath = path.resolve(
         __dirname,
@@ -87,7 +84,7 @@ wss.on('connection', (ws) => {
       );
 
       const scriptPath = path.resolve(__dirname, 'ml', 'simulation_engine.py');
-      pythonProcess = spawn(pythonPath, ['-u', scriptPath, device]);
+      pythonProcess = spawn(pythonPath, ['-u', scriptPath, data.device]);
 
       pythonProcess.stdout.on('data', (chunk) => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -109,6 +106,7 @@ wss.on('connection', (ws) => {
       });
     }
 
+    // --- Stop Python Simulation ---
     if (data.type === 'stop') {
       safeKill();
     }

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const ReportModel = require('../models/Report');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -55,6 +56,34 @@ router.post('/start', (req, res) => {
   res.json({ reportId });
 });
 
+// PUT /api/reports/:reportId/update (in-memory version)
+router.put('/:reportId/update', (req, res) => {
+  const { reportId } = req.params;
+  const updates = req.body;
+
+  const report = reportsStore[reportId];
+  if (!report) return res.status(404).json({ error: 'Report not found' });
+
+  // Store visual analysis properly under vision
+  if (updates.visualAnalysis) {
+    report.vision = report.vision || {};
+    report.vision.analysis = updates.visualAnalysis;
+  }
+
+  if (updates.audioTranscript) {
+    report.audio = report.audio || {};
+    report.audio.transcript = updates.audioTranscript;
+  }
+
+  if (updates.predictive) {
+    report.predictive = updates.predictive;
+  }
+
+  res.json({ success: true, report });
+});
+
+
+
 // --- Add predictive data ---
 router.post('/:reportId/predictive', (req, res) => {
   const { reportId } = req.params;
@@ -101,9 +130,48 @@ router.get('/:reportId', (req, res) => {
   const report = reportsStore[reportId];
   if (!report) return res.status(404).json({ error: 'Report not found' });
 
-  res.json(report);
-  console.log('Adding data to report:', reportsStore[reportId].predictive);
+  // Map stored sections into a unified structure
+  const normalizedReport = {
+    _id: reportId,
+    device: report.device,
+    createdAt: report.createdAt,
+    finalStatus: report.predictive?.final_status_text || 'Normal',
+    rootCause: report.predictive?.trigger || null,
+    summary: report.predictive?.ai_summary || null,
+    evidence: {
+      logAnalysis: report.predictive?.verdict_text || null,
+      visualAnalysis: report.vision?.analysis || null,
+      audioTranscript: report.audio?.transcript || null,
+    },
+  };
+
+  res.json(normalizedReport);
 });
 
+// server/routes/reports.js
+const Report = require('../models/Report'); // Mongoose model
 
-module.exports = { router, addSimulationData, reportsStore };
+async function saveReportToDB(report) {
+  if (!report) return;
+  const existing = await Report.findOne({ sessionId: report.sessionId });
+  if (existing) {
+    existing.device = report.device;
+    existing.predictive = report.predictive;
+    existing.vision = report.vision;
+    existing.audio = report.audio;
+    existing.updatedAt = new Date();
+    await existing.save();
+  } else {
+    await Report.create({
+      sessionId: report.sessionId,
+      device: report.device,
+      predictive: report.predictive,
+      vision: report.vision,
+      audio: report.audio,
+      createdAt: report.createdAt || new Date(),
+      updatedAt: new Date(),
+    });
+  }
+}
+
+module.exports = { router, addSimulationData, reportsStore, saveReportToDB };

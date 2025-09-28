@@ -101,26 +101,32 @@ const VisualAssistantPage = () => {
     formData.append('deviceImage', file);
 
     try {
-      const response = await fetch('http://localhost:5001/api/diagnose/visual', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Server error');
-      const data = await response.json();
-      setResult(data.analysis);
+        // Call visual analysis API
+        const response = await fetch('http://localhost:5001/api/diagnose/visual', { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Server error');
+        const data = await response.json();
+        setResult(data.analysis);
 
-      const sessionId = getSessionId();
-      if(sessionId && data.analysis) {
-        await fetch(`http://localhost:5001/api/reports/${sessionId}/update`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visualAnalysis: data.analysis })
+        // --- Update report using reportId instead of sessionId ---
+        const reportId = localStorage.getItem('aura_reportId');
+        if (reportId && data.analysis) {
+        const updateRes = await fetch(`http://localhost:5001/api/reports/${reportId}/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visualAnalysis: data.analysis }),
         });
-      }
+
+        if (!updateRes.ok) console.warn('Report update failed:', await updateRes.text());
+        }
 
     } catch (error) {
-      setResult('Failed to get analysis. Please try again.');
+        console.error('Visual analysis error:', error);
+        setResult('Failed to get analysis. Please try again.');
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+    };
+
   
   const handleReset = () => {
     setFile(null);

@@ -24,6 +24,7 @@ async function retryGemini(model, promptParts, retries = 3, delay = 2000) {
   }
 }
 
+
 /**
  * POST /api/diagnose/summarize
  * body: { device: string, root_cause: string }
