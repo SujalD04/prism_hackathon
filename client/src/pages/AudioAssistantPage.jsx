@@ -92,9 +92,9 @@ const AudioAssistantPage = () => {
             setTextInput(transcript || "");
 
             // Update report with the transcript
-            const sessionId = getSessionId();
-            if (sessionId && transcript) {
-              await fetch(`http://localhost:5001/api/reports/${sessionId}/update`, {
+            const reportId = localStorage.getItem('aura_reportId');
+            if (reportId && transcript) {
+              await fetch(`http://localhost:5001/api/reports/${reportId}/update`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ audioTranscript: transcript })
@@ -146,14 +146,34 @@ const AudioAssistantPage = () => {
         }
     };
 
-    const handleSendText = (e) => {
-        e.preventDefault();
-        if (!textInput.trim() || isProcessing) return;
-        const newMessages = [...messages, { sender: 'user', text: textInput }];
-        setMessages(newMessages);
-        getAiReply(textInput, newMessages);
-        setTextInput('');
+    const handleSendText = async (e) => {
+      e.preventDefault();
+      if (!textInput.trim() || isProcessing) return;
+
+      const userMessage = { sender: 'user', text: textInput };
+      const newMessages = [...messages, userMessage];
+      setMessages(newMessages);
+
+      // Update report with typed message
+      const reportId = localStorage.getItem('aura_reportId');
+      if (reportId && textInput) {
+        try {
+          await fetch(`http://localhost:5001/api/reports/${reportId}/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              audioTranscript: textInput // Save typed messages here too
+            })
+          });
+        } catch (err) {
+          console.error('Failed to update report with typed message:', err);
+        }
+      }
+
+      getAiReply(textInput, newMessages);
+      setTextInput('');
     };
+
 
     return (
         <div className="bg-slate-900 text-gray-200 min-h-screen flex flex-col font-sans p-4 sm:p-6 lg:p-8">

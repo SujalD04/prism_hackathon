@@ -64,24 +64,25 @@ router.put('/:reportId/update', (req, res) => {
   const report = reportsStore[reportId];
   if (!report) return res.status(404).json({ error: 'Report not found' });
 
-  // Store visual analysis properly under vision
+  // Visual analysis
   if (updates.visualAnalysis) {
     report.vision = report.vision || {};
     report.vision.analysis = updates.visualAnalysis;
   }
 
+  // Audio transcript
   if (updates.audioTranscript) {
     report.audio = report.audio || {};
     report.audio.transcript = updates.audioTranscript;
   }
 
+  // Predictive data
   if (updates.predictive) {
     report.predictive = updates.predictive;
   }
 
   res.json({ success: true, report });
 });
-
 
 
 // --- Add predictive data ---
