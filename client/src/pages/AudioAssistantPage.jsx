@@ -131,6 +131,7 @@ const AudioAssistantPage = () => {
 
     const getAiReply = async (userMessage, history) => {
         setIsProcessing(true);
+        let aiReplyText = '';
         try {
             const res = await fetch('http://localhost:5001/api/diagnose/chat', {
                 method: 'POST',
@@ -138,13 +139,30 @@ const AudioAssistantPage = () => {
                 body: JSON.stringify({ message: userMessage, history })
             });
             const { reply } = await res.json();
-            addMessage({ sender: 'ai', text: reply });
+            aiReplyText = reply || 'No reply from AI.';
+            addMessage({ sender: 'ai', text: aiReplyText });
+
+            // --- Update report with AI assumption ---
+            const reportId = localStorage.getItem('aura_reportId');
+            if (reportId && aiReplyText) {
+                await fetch(`http://localhost:5001/api/reports/${reportId}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        aiAssumption: aiReplyText,
+                        userMessage: userMessage  // optional: save the user input
+                    })
+                });
+            }
+
         } catch (err) {
             addMessage({ sender: 'ai', text: 'Sorry, I am unable to respond right now.' });
+            console.error('AI reply error:', err);
         } finally {
             setIsProcessing(false);
         }
     };
+
 
     const handleSendText = async (e) => {
       e.preventDefault();
