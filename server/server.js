@@ -44,6 +44,10 @@ wss.on('connection', (ws) => {
 
     // Auto-capture predictive trigger data
     if (data.type === 'trigger' && data.event) {
+      if (!reportId) {
+        console.error('WebSocket message missing reportId:', data);
+        return;
+      }
       const reportData = {
         timestamp: new Date().toLocaleTimeString(),
         trigger: data.event,
@@ -55,7 +59,13 @@ wss.on('connection', (ws) => {
         forecast: data.forecast || [],
       };
 
-      addSimulationData(reportId, device, 'predictive', reportData); // ✅ now tied to reportId
+      // Directly update the report by reportId
+      const reportsStore = require('./routes/reports').reportsStore;
+      if (reportsStore[reportId]) {
+        reportsStore[reportId].predictive = reportData;
+      } else {
+        console.error('No report found for reportId:', reportId);
+      }
 
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(reportData));
@@ -64,6 +74,7 @@ wss.on('connection', (ws) => {
 
     // Start Python simulation
     if (data.type === 'start' && device) {
+      ws.reportId = reportId;
       safeKill();
       console.log(`Starting simulation for device: ${device}, reportId: ${reportId}`);
 
