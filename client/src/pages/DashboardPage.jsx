@@ -34,9 +34,10 @@ const DashboardPage = () => {
             sessionId,
             device: selectedDevice
             });
+            localStorage.setItem('reportId', res.data.reportId);
 
             const reportId = res.data.reportId || sessionId;
-            setSessionId(reportId); // update stored session
+            //setSessionId(reportId); // update stored session
 
             // Start WebSocket connection
             ws.current = new WebSocket('ws://localhost:5001');
@@ -60,6 +61,8 @@ const DashboardPage = () => {
                 console.warn('Non-JSON message received:', event.data);
             }
             };
+
+            console.log('Received data: ', data); 
 
             ws.current.onclose = () => {
             console.log('Disconnected from WebSocket');
@@ -94,15 +97,20 @@ const DashboardPage = () => {
     }
   };
 
-  const handleTrigger = async (eventName) => {
-    if (ws.current && simulationState === 'running') {
-      setLoadingTrigger(true);
-      console.log(`Triggering event: ${eventName}`);
-      ws.current.send(JSON.stringify({ type: 'trigger', event: eventName }));
-      // simulate short delay for UI
-      setTimeout(() => setLoadingTrigger(false), 1000);
-    }
-  };
+const handleTrigger = async (eventName) => {
+  if (ws.current && simulationState === 'running') {
+    setLoadingTrigger(true);
+    const reportId = localStorage.getItem('reportId'); // <-- Add this line
+    console.log(`Triggering event: ${eventName}`);
+    ws.current.send(JSON.stringify({ 
+      type: 'trigger', 
+      event: eventName, 
+      reportId, // <-- Add this field
+      device: selectedDevice // (optional, for consistency)
+    }));
+    setTimeout(() => setLoadingTrigger(false), 1000);
+  }
+};
 
   const handleExplain = async () => {
     if (!data || !data.trigger) return;
@@ -124,6 +132,7 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
+    if (!chartRef.current) return;
     if (data && simulationState === 'running') {
       if (!chartInstance.current) {
         const ctx = chartRef.current.getContext('2d');
@@ -142,7 +151,8 @@ const DashboardPage = () => {
         chart.datasets[0].data.shift();
       }
       chartInstance.current.update();
-    }
+
+  }
   }, [data, simulationState]);
 
   return (
