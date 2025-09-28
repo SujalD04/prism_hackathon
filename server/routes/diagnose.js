@@ -4,7 +4,11 @@ const router = express.Router();
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// [TIER 2] Gemini API endpoint
+/**
+ * POST /api/diagnose/summarize
+ * body: { device: string, root_cause: string }
+ * Returns a short user-friendly explanation / fix.
+ */
 router.post('/summarize', async (req, res) => {
   const { device, root_cause } = req.body;
   if (!device || !root_cause) {
@@ -14,21 +18,23 @@ router.post('/summarize', async (req, res) => {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    
-    const prompt = `My Samsung ${device} is showing a critical error related to high '${root_cause}'. Generate one simple, user-friendly, one-sentence troubleshooting step to fix this.`;
-    
+
+    const prompt = `My ${device} is showing a critical error related to '${root_cause}'. Provide a short, user-friendly, one-sentence troubleshooting step to fix this.`;
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const summary = response.text();
-    
+
     res.json({ summary });
   } catch (error) {
     console.error('Gemini API error:', error);
-    res.status(500).json({ summary: `High activity detected in ${root_cause}. Consider restarting the device.` });
+    res.status(500).json({
+      summary: `Detected issue with '${root_cause}'. Try restarting your ${device} or checking the component.`,
+    });
   }
 });
 
-// Other placeholder routes
+// Placeholder routes for completeness
 router.post('/visual', (req, res) => res.json({ analysis: 'Visual analysis endpoint placeholder.' }));
 router.post('/audio', (req, res) => res.json({ transcript: 'Audio transcript endpoint placeholder.' }));
 

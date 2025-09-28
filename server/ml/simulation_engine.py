@@ -164,7 +164,8 @@ def run_simulation(device):
                     "verdict_text": verdict_text,
                     "is_anomaly_predicted": is_anomaly_predicted,
                     "first_anomaly_time": first_anomaly_time,
-                    "forecast": future_predictions
+                    "forecast": future_predictions,
+                    "root_cause": "CPU Temperature" if pred_prob > 0.7 else "Battery Drain" if pred_prob > 0.5 else "None"
                 }
 
                 print(json.dumps(data_packet))
