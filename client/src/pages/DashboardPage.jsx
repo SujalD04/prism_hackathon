@@ -21,14 +21,20 @@ const DashboardPage = () => {
     };
 
     ws.current.onmessage = (event) => {
-      const receivedData = JSON.parse(event.data);
-      if (receivedData.error) {
+    try {
+        const receivedData = JSON.parse(event.data);
+        if (receivedData.error) {
         console.error('Error from backend:', receivedData.error);
         handleStop();
-      } else {
-        setData(receivedData);
-      }
+        } else {
+        // Merge with existing data to avoid blank flashes
+        setData(prev => ({ ...prev, ...receivedData }));
+        }
+    } catch (err) {
+        console.warn('Non-JSON message received:', event.data);
+    }
     };
+
 
     ws.current.onclose = () => {
       console.log('Disconnected from WebSocket');
@@ -51,6 +57,13 @@ const DashboardPage = () => {
     }
   };
 
+  const handleTrigger = (eventName) => {
+    if (ws.current && simulationState === 'running') {
+      console.log(`Triggering event: ${eventName}`);
+      ws.current.send(JSON.stringify({ type: 'trigger', event: eventName }));
+    }
+  };
+
   useEffect(() => {
     if (data && simulationState === 'running') {
       if (!chartInstance.current) {
@@ -70,15 +83,15 @@ const DashboardPage = () => {
           },
           options: {
             responsive: true,
-            maintainAspectRatio: false, // important for canvas height
+            maintainAspectRatio: false,
             scales: { y: { beginAtZero: true, max: 1.1 } },
           },
         });
       }
 
       const chart = chartInstance.current.data;
-      chart.labels.push(data.timestamp);
-      chart.datasets[0].data.push(data.probability);
+      chart.labels.push(data.timestamp || new Date().toLocaleTimeString());
+      chart.datasets[0].data.push(data.probability || 0);
       if (chart.labels.length > 30) {
         chart.labels.shift();
         chart.datasets[0].data.shift();
@@ -127,25 +140,48 @@ const DashboardPage = () => {
         </button>
       </div>
 
+      {/* 🔹 Trigger buttons */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => handleTrigger('critical_cpu')}
+          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+        >
+          Trigger Critical CPU
+        </button>
+        <button
+          onClick={() => handleTrigger('warning_battery')}
+          className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600"
+        >
+          Trigger Low Battery
+        </button>
+      </div>
+
       {data ? (
         <>
           {/* Metric Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div
-              className={`p-4 rounded-lg text-white shadow-md metric-card metric-card-${data.final_status_style} ${data.card_class_extra}`}
-              style={{
-                backgroundColor:
-                  data.final_status_style === 'normal'
-                    ? '#28a745'
-                    : data.final_status_style === 'warning'
-                    ? '#ffc107'
-                    : '#dc3545',
-                border: data.card_class_extra ? '3px solid #00BFFF' : 'none',
-              }}
-            >
-              <h3 className="text-lg font-semibold mb-2">System Health Verdict</h3>
-              <p className="text-2xl font-bold">{data.final_status_text}</p>
-            </div>
+                className={`p-4 rounded-lg text-white shadow-md metric-card metric-card-${data.final_status_style} ${data.card_class_extra}`}
+                style={{
+                    height: '200px', // FIXED HEIGHT
+                    minHeight: '200px',
+                    maxHeight: '200px',
+                    backgroundColor:
+                    data.final_status_style === 'normal'
+                        ? '#28a745'
+                        : data.final_status_style === 'warning'
+                        ? '#ffc107'
+                        : '#dc3545',
+                    border: data.card_class_extra ? '3px solid #00BFFF' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center', // centers content vertically
+                    overflow: 'hidden',       // prevent overflow if content changes
+                }}
+                >
+                <h3 className="text-lg font-semibold mb-2">System Health Verdict</h3>
+                <p className="text-2xl font-bold">{data.final_status_text || data.final_status_style || 'Normal'}</p>
+                </div>
 
             <div className="p-4 rounded-lg bg-gray-100 text-black shadow-md">
               <h3 className="text-lg font-semibold mb-2">Predictive Model</h3>
@@ -154,24 +190,26 @@ const DashboardPage = () => {
               ) : (
                 <p>✅ No future anomalies detected</p>
               )}
-              <div className="mt-2 overflow-auto max-h-48">
-                <table className="w-full text-left border">
-                  <thead>
-                    <tr>
-                      <th className="border px-2 py-1">Time</th>
-                      <th className="border px-2 py-1">Predicted Metric</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.forecast.map((f, idx) => (
-                      <tr key={idx}>
-                        <td className="border px-2 py-1">{f.Time}</td>
-                        <td className="border px-2 py-1">{f['Predicted Metric']}</td>
+              {data.forecast && (
+                <div className="mt-2 overflow-auto max-h-48">
+                  <table className="w-full text-left border">
+                    <thead>
+                      <tr>
+                        <th className="border px-2 py-1">Time</th>
+                        <th className="border px-2 py-1">Predicted Metric</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {data.forecast.map((f, idx) => (
+                        <tr key={idx}>
+                          <td className="border px-2 py-1">{f.Time}</td>
+                          <td className="border px-2 py-1">{f['Predicted Metric']}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 
