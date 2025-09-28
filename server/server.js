@@ -1,4 +1,3 @@
-// server/server.js
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -6,6 +5,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const { addSimulationData } = require('./routes/reports');
 
 connectDB();
 
@@ -18,25 +18,14 @@ app.use(express.json());
 
 app.use('/api/users', require('./routes/users'));
 app.use('/api/diagnose', require('./routes/diagnose'));
-app.use('/api/reports', require('./routes/reports'));
+app.use('/api/reports', require('./routes/reports').router);
 
 const DEVICE_TRIGGERS = {
-  smartphone: {
-    critical_cpu: { feature: 'CPU Temperature', prob: 0.95, status: 'Critical' },
-    warning_battery: { feature: 'Battery Drain', prob: 0.65, status: 'Warning' },
-  },
-  smartwatch: {
-    critical_cpu: { feature: 'CPU Temperature', prob: 0.9, status: 'Critical' },
-    low_battery: { feature: 'Battery Drain', prob: 0.7, status: 'Warning' },
-  },
-  smartfridge: {
-    high_temp: { feature: 'Fridge Temperature', prob: 0.9, status: 'Critical' },
-    door_left_open: { feature: 'Door Status', prob: 0.7, status: 'Warning' },
-  },
+  smartphone: { critical_cpu: 0.95, warning_battery: 0.65 },
+  smartwatch: { critical_cpu: 0.9, low_battery: 0.7 },
+  smartfridge: { high_temp: 0.9, door_left_open: 0.7 },
 };
 
-
-// --- UPDATED WEBSOCKET LOGIC ---
 wss.on('connection', (ws) => {
   console.log('Client connected to WebSocket');
   let pythonProcess = null;
@@ -51,13 +40,33 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     const data = JSON.parse(message);
+    const { reportId, device } = data; // ✅ use reportId consistently
 
-    if (data.type === 'start' && data.device) {
-      safeKill(); // kill old process if exists
+    // Auto-capture predictive trigger data
+    if (data.type === 'trigger' && data.event) {
+      const reportData = {
+        timestamp: new Date().toLocaleTimeString(),
+        trigger: data.event,
+        final_status_text: data.final_status_text || 'Manual Trigger',
+        final_status_style: data.final_status_style || 'normal',
+        probability: data.probability || 0.5,
+        is_anomaly_predicted: data.is_anomaly_predicted || false,
+        first_anomaly_time: data.first_anomaly_time || null,
+        forecast: data.forecast || [],
+      };
 
-      console.log(`Starting simulation for device: ${data.device}`);
+      addSimulationData(reportId, device, 'predictive', reportData); // ✅ now tied to reportId
 
-      // ✅ Use Python inside .venv
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(reportData));
+      }
+    }
+
+    // Start Python simulation
+    if (data.type === 'start' && device) {
+      safeKill();
+      console.log(`Starting simulation for device: ${device}, reportId: ${reportId}`);
+
       const pythonPath = path.resolve(
         __dirname,
         '..',
@@ -67,8 +76,7 @@ wss.on('connection', (ws) => {
       );
 
       const scriptPath = path.resolve(__dirname, 'ml', 'simulation_engine.py');
-
-      pythonProcess = spawn(pythonPath, ['-u', scriptPath, data.device]);
+      pythonProcess = spawn(pythonPath, ['-u', scriptPath, device]);
 
       pythonProcess.stdout.on('data', (chunk) => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -78,13 +86,9 @@ wss.on('connection', (ws) => {
 
       pythonProcess.stderr.on('data', (chunk) => {
         const msg = chunk.toString();
-        if (msg.toLowerCase().includes('error')) {
-          console.error(`Python script error: ${msg}`);
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ error: msg }));
-          }
-        } else {
-          console.warn(`Python script warning: ${msg}`);
+        console.error('Python error:', msg);
+        if (msg.toLowerCase().includes('error') && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ error: msg }));
         }
       });
 
@@ -95,43 +99,7 @@ wss.on('connection', (ws) => {
     }
 
     if (data.type === 'stop') {
-      console.log('🛑 Stop command received');
       safeKill();
-    }
-
-    if (data.type === 'trigger' && data.event) {
-      console.log(`⚡ Trigger event: ${data.event}`);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(
-          JSON.stringify({
-            timestamp: new Date().toLocaleTimeString(),
-            trigger: data.event,
-            final_status_text:
-              data.event === 'critical_cpu'
-                ? 'Critical'
-                : data.event === 'warning_battery'
-                ? 'Warning'
-                : 'Custom Trigger',
-            final_status_style:
-              data.event === 'critical_cpu'
-                ? 'critical'
-                : data.event === 'warning_battery'
-                ? 'warning'
-                : 'normal',
-            probability:
-              data.event === 'critical_cpu'
-                ? 0.95
-                : data.event === 'warning_battery'
-                ? 0.65
-                : 0.4,
-            verdict_text: `Manual trigger: ${data.event}`,
-            forecast: [],
-            is_anomaly_predicted: data.event === 'critical_cpu',
-            first_anomaly_time:
-              data.event === 'critical_cpu' ? '+10 min' : null,
-          })
-        );
-      }
     }
   });
 
@@ -142,6 +110,4 @@ wss.on('connection', (ws) => {
 });
 
 const PORT = process.env.PORT || 5001;
-server.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

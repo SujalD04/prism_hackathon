@@ -1,6 +1,7 @@
 // client/src/pages/AudioAssistantPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useReactMediaRecorder } from 'react-media-recorder';
+import { getSessionId } from '../utils/session';
 
 const ChatBubble = ({ message }) => (
     <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -53,6 +54,16 @@ const AudioAssistantPage = () => {
         } finally {
             setIsProcessing(false);
         }
+
+        const sessionId = getSessionId();
+        await fetch(`http://localhost:5001/api/reports/${sessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            device: "smartphone",     // or pass selected device if available
+            audio: { transcript }
+          })
+        });
     };
 
     const { status, startRecording, stopRecording } = useReactMediaRecorder({
@@ -93,6 +104,15 @@ const AudioAssistantPage = () => {
         } finally {
             setIsProcessing(false);
         }
+
+        await fetch(`http://localhost:5001/api/reports/${sessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            device: "smartphone",
+            audio: { reply }
+          })
+        });
     };
 
     const handleSendText = (e) => {

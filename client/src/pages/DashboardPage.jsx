@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Chart } from 'chart.js/auto';
 import axios from 'axios';
+import { setSessionId, getSessionId } from '../utils/session'; 
 
 const DashboardPage = () => {
   const [simulationState, setSimulationState] = useState('idle'); // idle, running
@@ -16,37 +17,63 @@ const DashboardPage = () => {
   const chartInstance = useRef(null);
   const ws = useRef(null);
 
-  const handleStart = () => {
-    setLoadingSimulation(true);
-    ws.current = new WebSocket('ws://localhost:5001');
+  // inside DashboardPage.jsx
+    const handleStart = async () => {
+        setLoadingSimulation(true);
 
-    ws.current.onopen = () => {
-      console.log('Connected to WebSocket. Starting simulation...');
-      ws.current.send(JSON.stringify({ type: 'start', device: selectedDevice }));
-      setSimulationState('running');
-      setLoadingSimulation(false);
-    };
+        try {
+            // Try to reuse existing sessionId if available
+            let sessionId = getSessionId();
+            if (!sessionId) {
+            sessionId = crypto.randomUUID();  // generate new one if not exists
+            setSessionId(sessionId);
+            }
 
-    ws.current.onmessage = (event) => {
-      try {
-        const receivedData = JSON.parse(event.data);
-        if (receivedData.error) {
-          console.error('Error from backend:', receivedData.error);
-          handleStop();
-        } else {
-          setData(prev => ({ ...prev, ...receivedData }));
+            // ✅ Send both sessionId + device to backend
+            const res = await axios.post("http://localhost:5001/api/reports/start", {
+            sessionId,
+            device: selectedDevice
+            });
+
+            const reportId = res.data.reportId || sessionId;
+            setSessionId(reportId); // update stored session
+
+            // Start WebSocket connection
+            ws.current = new WebSocket('ws://localhost:5001');
+            ws.current.onopen = () => {
+            console.log('Connected to WebSocket. Starting simulation...');
+            ws.current.send(JSON.stringify({ type: 'start', device: selectedDevice, reportId }));
+            setSimulationState('running');
+            setLoadingSimulation(false);
+            };
+
+            ws.current.onmessage = (event) => {
+            try {
+                const receivedData = JSON.parse(event.data);
+                if (receivedData.error) {
+                console.error('Error from backend:', receivedData.error);
+                handleStop();
+                } else {
+                setData(prev => ({ ...prev, ...receivedData }));
+                }
+            } catch (err) {
+                console.warn('Non-JSON message received:', event.data);
+            }
+            };
+
+            ws.current.onclose = () => {
+            console.log('Disconnected from WebSocket');
+            setSimulationState('idle');
+            setLoadingSimulation(false);
+            };
+
+        } catch (err) {
+            console.error("Failed to start report:", err);
+            setLoadingSimulation(false);
         }
-      } catch (err) {
-        console.warn('Non-JSON message received:', event.data);
-      }
     };
 
-    ws.current.onclose = () => {
-      console.log('Disconnected from WebSocket');
-      setSimulationState('idle');
-      setLoadingSimulation(false);
-    };
-  };
+
 
   const handleStop = () => {
     if (ws.current) {
