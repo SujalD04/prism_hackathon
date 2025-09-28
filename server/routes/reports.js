@@ -30,6 +30,8 @@ function addSimulationData(sessionId, device, section, data) {
     };
   }
 
+  console.log('Adding data to report:', reportId, section, data, reportsStore[reportId].sessionId);
+
   reportsStore[reportId][section] = data;
   return reportId;
 }
@@ -48,6 +50,7 @@ router.post('/start', (req, res) => {
     audio: null,
     createdAt: new Date(),
   };
+
 
   res.json({ reportId });
 });
@@ -99,6 +102,8 @@ router.get('/:reportId', (req, res) => {
   if (!report) return res.status(404).json({ error: 'Report not found' });
 
   res.json(report);
+  console.log('Adding data to report:', reportsStore[reportId].predictive);
 });
 
-module.exports = { router, addSimulationData };
+
+module.exports = { router, addSimulationData, reportsStore };
