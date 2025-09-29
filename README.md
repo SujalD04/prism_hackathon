@@ -9,7 +9,7 @@
 # Samsung Care+ AI – Autonomous Device Health & Support Ecosystem
 
 ## Overview
-Samsung Care+ AI is an always-on **device health companion** that monitors all Samsung devices — smartphones, TVs, appliances, and wearables — using multimodal AI.  
+Samsung Aura is an always-on **device health companion** that monitors all Samsung devices — smartphones, TVs, appliances, and wearables — using multimodal AI.  
 It predicts failures, performs remote fixes, and coordinates service **without human intervention**.  
 
 The solution is powered by a **multi-agent system** with specialized AI agents for:
@@ -183,7 +183,7 @@ This report helps in understanding the overall system health and suggested fixes
 <img width="1919" height="716" alt="image" src="https://github.com/user-attachments/assets/469fe756-c973-41ef-b3c9-26ef4950e46f" />
 <img width="1919" height="778" alt="image" src="https://github.com/user-attachments/assets/1504c59f-2040-40bd-b026-087a663513ac" />
 
-You can also download you report as a pdf.
+You can also download your report as a pdf.
 
 <img width="1163" height="144" alt="image" src="https://github.com/user-attachments/assets/315880da-aec5-4c51-abb0-5b967cd9de12" />
 
