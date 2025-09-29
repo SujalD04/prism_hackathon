@@ -145,3 +145,21 @@ Once inside the dashboard, you will see **three main sections**:
    ![Live Health Graph Screenshot](screenshots/live-health-graph.png)
 
 ---
+
+### 📸 Visual Input Section
+
+In the **Visual Input** section, you can upload an image of your **broken device** or a **specific component**.  
+The AI will analyze the image and provide a **recommended fix**.  
+
+![Visual Input Screenshot](screenshots/visual-input.png)
+
+---
+
+### 🎙️ Audio Section
+
+In the **Audio** section, you can interact with the **AI bot** through voice chat.  
+The bot will listen to your issue and provide **recommended solutions** in real time.  
+
+![Audio Section Screenshot](screenshots/audio-section.png)
+
+---
