@@ -23,49 +23,79 @@ This ensures **proactive support**, reducing downtime, extending device lifespan
 
 ---
 
-## Problem Statement
-- Users face unexpected device breakdowns leading to inconvenience and downtime.  
-- Manual troubleshooting requires technical expertise or service center visits.  
-- Current support systems are **reactive, not predictive**.  
-- Lack of proactive maintenance increases repair costs and reduces device lifespan.  
+# Project Setup
 
-**Our Solution:**  
-An intelligent **multi-agent AI ecosystem** that:
-- Continuously monitors device health  
-- Predicts failures before they occur  
-- Applies instant fixes remotely  
-- Coordinates repairs autonomously  
-- Ensures smooth user interaction through conversational AI  
+This project consists of a **server**, a **client**, and a **Python environment**. Follow the steps below to set everything up.  
 
 ---
 
-## Architecture
-### **Perception Layer**
-- Vision AI → Detects physical damage  
-- Voice AI → Conversational diagnostics  
-- Text AI → Log & error code analysis  
+## 🔧 Server Setup
 
-### **Reasoning & Prediction Layer**
-- Health Monitor Agent → Real-time diagnostics  
-- Predictive Maintenance Agent → Failure prediction  
-- Service Coordination Agent → Repairs & spare part management  
-- User Interaction Agent → Communicates fixes & instructions  
+1. Navigate to the `server` directory:
+   ```bash
+   cd server
+   ```
 
-### **Action Layer**
-- Applies patches and optimizations  
-- Prevents future damage with predictive adjustments  
-- Prepares repair reports for engineers  
+2. Create a `.env` file inside the `server` folder and add the following keys:
+   ```env
+   MONGODB_URI=your_mongodb_uri_here
+   GEMINI_API_KEY=your_gemini_api_key_here
+   HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+   ```
 
----
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Tech Stack
-- **AI Frameworks:** TensorFlow, PyTorch  
-- **NLP:** BERT, Rasa NLU  
-- **Computer Vision:** OpenCV, Samsung Vision AI APIs  
-- **Cloud & Storage:** Samsung Cloud, AWS S3  
-- **Security:** Samsung Knox  
-- **IoT Integration:** SmartThings API  
-- **Mobile & Wearables:** Android SDK, Tizen SDK  
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
 ---
 
+## 💻 Client Setup
+
+1. Navigate to the `client` directory:
+   ```bash
+   cd client
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the client development server:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## 🐍 Python Environment Setup
+
+1. In the **root directory** of the project, create a virtual environment:
+   ```bash
+   python -m venv .venv
+   ```
+
+2. Activate the virtual environment:
+
+   - **Windows (PowerShell):**
+     ```bash
+     .venv\Scripts\activate
+     ```
+
+   - **Linux/MacOS:**
+     ```bash
+     source .venv/bin/activate
+     ```
+
+3. Install the required Python packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
