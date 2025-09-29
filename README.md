@@ -117,7 +117,8 @@ After setting up and running both the **server** and the **client**, open the ap
 ### 🖼️ Dashboard Walkthrough (Screenshots go here)
 
 - **Device Selection Page:**  
-  ![Device Selection Screenshot](screenshots/device-selection.png)
+  ![Device Selection Screenshot]<img width="1917" height="907" alt="image" src="https://github.com/user-attachments/assets/ad80b98e-9fbe-4ca5-ab22-6d42f54c1455" />
+
 
 - **Simulation Options:**  
   ![Simulation Options Screenshot](screenshots/simulation-options.png)
