@@ -99,3 +99,49 @@ This project consists of a **server**, a **client**, and a **Python environment*
    ```
 
 ---
+
+## 📊 Using the Dashboard
+
+After setting up and running both the **server** and the **client**, open the application in your browser.  
+
+1. Navigate to the **Dashboard** page.  
+2. Select the **device** you wish to test.  
+3. Inside the device view, you can simulate two scenarios:  
+   - **CPU Fault Simulation** 🖥️  
+   - **Battery Fault Simulation** 🔋  
+
+👉 Choose a simulation of your choice.  
+
+---
+
+### 🖼️ Dashboard Walkthrough (Screenshots go here)
+
+- **Device Selection Page:**  
+  ![Device Selection Screenshot](screenshots/device-selection.png)
+
+- **Simulation Options:**  
+  ![Simulation Options Screenshot](screenshots/simulation-options.png)
+
+---
+
+### 📌 Dashboard Layout
+
+Once inside the dashboard, you will see **three main sections**:
+
+1. **Top-Left: Classification Model**  
+   - Displays the **current system status**  
+   - Provides a **recommended fix**  
+
+   ![Classification Model Screenshot](screenshots/classification-model.png)
+
+2. **Top-Right: Predictive Model**  
+   - Shows **predictions for up to the next 50 minutes**  
+
+   ![Predictive Model Screenshot](screenshots/predictive-model.png)
+
+3. **Bottom: Live Health Graph**  
+   - Displays the **real-time health status** of the system  
+
+   ![Live Health Graph Screenshot](screenshots/live-health-graph.png)
+
+---
