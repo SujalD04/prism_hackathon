@@ -6,7 +6,7 @@
 - Drisanth M (22MIC0139)
 - Darsh Marothi (22MID0333)
 
-# Samsung Care+ AI – Autonomous Device Health & Support Ecosystem
+# Samsung Aura – Autonomous Device Health & Support Ecosystem
 
 ## Overview
 Samsung Aura is an always-on **device health companion** that monitors all Samsung devices — smartphones, TVs, appliances, and wearables — using multimodal AI.  
