@@ -116,12 +116,15 @@ After setting up and running both the **server** and the **client**, open the ap
 
 ### 🖼️ Dashboard Walkthrough (Screenshots go here)
 
-- **Device Selection Page:**  
-  ![Device Selection Screenshot]<img width="1917" height="907" alt="image" src="https://github.com/user-attachments/assets/ad80b98e-9fbe-4ca5-ab22-6d42f54c1455" />
+- **Dashboard:**  
+  <img width="1917" height="907" alt="image" src="https://github.com/user-attachments/assets/ad80b98e-9fbe-4ca5-ab22-6d42f54c1455" />
 
+-**Device Selection*:*
+   <img width="1919" height="908" alt="image" src="https://github.com/user-attachments/assets/3f0c3ff4-e33d-48ed-80e3-d6e4bf970b0f" />
 
 - **Simulation Options:**  
-  ![Simulation Options Screenshot](screenshots/simulation-options.png)
+  <img width="1919" height="910" alt="image" src="https://github.com/user-attachments/assets/9aaa9a93-ce69-430d-b0b2-f9f79b358217" />
+
 
 ---
 
