@@ -102,7 +102,7 @@ This project consists of a **server**, a **client**, and a **Python environment*
 
 ## 📊 Using the Dashboard
 
-After setting up and running both the **server** and the **client**, open the application in your browser. The application currently cannot support support real-time data, so we have to simulate scenarios. The simulation script is inside **simulation_loop.py** in the root directory.
+After setting up and running both the **server** and the **client**, open the application in your browser. The application currently does not support support real-time data, so we have to simulate scenarios. The simulation script is inside **simulation_loop.py** in the root directory.
 
 1. Navigate to the **Dashboard** page.  
 2. Select the **device** you wish to test.  
