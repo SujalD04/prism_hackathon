@@ -132,21 +132,23 @@ After setting up and running both the **server** and the **client**, open the ap
 
 Once inside the dashboard, you will see **three main sections**:
 
-1. **Top-Left: Classification Model**  
+1. **Classification Model**  
    - Displays the **current system status**  
    - Provides a **recommended fix**  
 
-   ![Classification Model Screenshot](screenshots/classification-model.png)
+   <img width="611" height="289" alt="image" src="https://github.com/user-attachments/assets/1c1747da-6eb2-4e90-b6d3-832aa7e712c9" />
 
-2. **Top-Right: Predictive Model**  
+
+2. **Predictive Model**  
    - Shows **predictions for up to the next 50 minutes**  
 
-   ![Predictive Model Screenshot](screenshots/predictive-model.png)
+   <img width="603" height="382" alt="image" src="https://github.com/user-attachments/assets/dc2db059-5fa2-4250-9da8-6a17617cb9d3" />
 
-3. **Bottom: Live Health Graph**  
+
+3. **Live Health Graph**  
    - Displays the **real-time health status** of the system  
 
-   ![Live Health Graph Screenshot](screenshots/live-health-graph.png)
+   <img width="1226" height="447" alt="image" src="https://github.com/user-attachments/assets/3f9fabec-a9e8-433d-a806-57ece2aca202" />
 
 ---
 
@@ -155,7 +157,7 @@ Once inside the dashboard, you will see **three main sections**:
 In the **Visual Input** section, you can upload an image of your **broken device** or a **specific component**.  
 The AI will analyze the image and provide a **recommended fix**.  
 
-![Visual Input Screenshot](screenshots/visual-input.png)
+<img width="1919" height="913" alt="image" src="https://github.com/user-attachments/assets/cf5bff42-dce6-4e61-a448-f69a4e665319" />
 
 ---
 
@@ -164,6 +166,26 @@ The AI will analyze the image and provide a **recommended fix**.
 In the **Audio** section, you can interact with the **AI bot** through voice chat.  
 The bot will listen to your issue and provide **recommended solutions** in real time.  
 
-![Audio Section Screenshot](screenshots/audio-section.png)
+<img width="1918" height="910" alt="image" src="https://github.com/user-attachments/assets/dde897e4-5ad0-4965-ae24-a3ed6ce21fc7" />
 
 ---
+
+### 📑 Report Generation Section
+
+The **Report Generation** section provides a **summarized and diagnostic report** of all your activities, including:
+
+- 🖥️ **Simulated Testing Results** (CPU/Battery faults)  
+- 📸 **Visual Input Analysis** (uploaded device/component images)  
+- 🎙️ **Audio Interaction Logs** (AI chat recommendations)  
+
+This report helps in understanding the overall system health and suggested fixes in one place.  
+
+<img width="1919" height="716" alt="image" src="https://github.com/user-attachments/assets/469fe756-c973-41ef-b3c9-26ef4950e46f" />
+<img width="1919" height="778" alt="image" src="https://github.com/user-attachments/assets/1504c59f-2040-40bd-b026-087a663513ac" />
+
+You can also download you report as a pdf.
+
+<img width="1163" height="144" alt="image" src="https://github.com/user-attachments/assets/315880da-aec5-4c51-abb0-5b967cd9de12" />
+
+---
+
