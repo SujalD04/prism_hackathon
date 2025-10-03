@@ -1,189 +1,175 @@
+# server/ml/simulation_engine.py
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Must be set BEFORE importing TensorFlow
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 import sys
-import json
 import time
-import numpy as np
+import json
 import pandas as pd
+import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
+from sklearn.ensemble import IsolationForest
 import warnings
+import random
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# --- CONFIGURATION (Paths are relative to the /server root) ---
+# --- Helper for printing debug logs ---
+def log_debug(message):
+    """Prints a message to the standard error stream for debugging."""
+    print(f"[DEBUG] {message}", file=sys.stderr, flush=True)
+
+# --- CONFIGURATION ---
 CLASSIFICATION_FILES = {
     "smartphone": {"dataset": "ml/classification/dataset/smartphone_dataset.json", "scaler": "ml/classification/scaler/smartphone_scaler.joblib", "features": "ml/classification/feature/smartphone_features.joblib", "model": "ml/classification/h5/smartphone_classification.h5"},
     "smartwatch": {"dataset": "ml/classification/dataset/smartwatch_dataset.json", "scaler": "ml/classification/scaler/smartwatch_scaler.joblib", "features": "ml/classification/feature/smartwatch_features.joblib", "model": "ml/classification/h5/smartwatch_classification.h5"},
     "smartfridge": {"dataset": "ml/classification/dataset/smartfridge_dataset.json", "scaler": "ml/classification/scaler/smartfridge_scaler.joblib", "features": "ml/classification/feature/smartfridge_features.joblib", "model": "ml/classification/h5/smartfridge_classification.h5"}
 }
+CLASSIFICATION_SEQUENCE_LENGTH = 10
+
 PREDICTIVE_FILES = {
-    "smartphone": {"dataset": "ml/predictive/dataset/smartphone_dataset.csv", "scaler": "ml/predictive/scaler/smartphone_scaler.joblib", "model": "ml/predictive/h5/smartphone_predictive.h5"},
-    "smartwatch": {"dataset": "ml/predictive/dataset/smartwatch_dataset.csv", "scaler": "ml/predictive/scaler/smartwatch_scaler.joblib", "model": "ml/predictive/h5/smartwatch_predictive.h5"},
-    "smartfridge": {"dataset": "ml/predictive/dataset/smartfridge_dataset.csv", "scaler": "ml/predictive/scaler/smartfridge_scaler.joblib", "model": "ml/predictive/h5/smartfridge_predictive.h5"}
+    "smartphone": {"dataset": "ml/prediction/dataset/smartphone_unified_dataset_v2.csv", "scaler": "ml/prediction/scaler/smartphone_multi_task_scaler.joblib", "screener_model": "ml/prediction/models/smartphone/prediction_model_lgbm_final.joblib", "why_model": "ml/prediction/models/smartphone/diagnostician_why_model.joblib", "when_model": "ml/prediction/models/smartphone/diagnostician_when_model.joblib"},
+    # --- THIS SECTION IS THE FIX ---
+    "smartwatch": {
+        "dataset": "ml/prediction/dataset/smartwatch_unified_dataset.csv", 
+        "scaler": "ml/prediction/scaler/smartwatch_multi_task_scaler.joblib", 
+        "screener_model": "ml/prediction/models/smartwatch/prediction_model_lgbm_if.joblib", 
+        # Corrected paths: removed the extra "smartwatch_" prefix
+        "why_model": "ml/prediction/models/smartwatch/diagnostician_why_model.joblib", 
+        "when_model": "ml/prediction/models/smartwatch/diagnostician_when_model.joblib"
+    },
+    "smartfridge": {"dataset": "ml/prediction/dataset/refrigerator_unified_dataset.csv", "scaler": "ml/prediction/scaler/refrigerator_multi_task_scaler.joblib", "screener_model": "ml/prediction/models/smartfridge/refrigerator_screener_model.joblib", "why_model": "ml/prediction/models/smartfridge/refrigerator_diagnostician_why.joblib", "when_model": "ml/prediction/models/smartfridge/refrigerator_diagnostician_when.joblib"}
 }
-SEQUENCE_LENGTH = 10
-FUTURE_STEPS = 5
-PREDICTIVE_ANOMALY_THRESHOLD = 14.0
+PREDICTIVE_FEATURE_CONFIG = {
+    "smartphone": ['battery_level', 'cpu_usage_percent', 'memory_usage_percent', 'storage_usage_percent', 'app_crashes', 'network_signal_strength_dbm', 'screen_on_time_minutes', 'fast_charging_active', 'speaker_volume_percent', 'ambient_temp_c'],
+    "smartwatch": ['battery_level', 'heart_rate_bpm', 'steps_per_hour', 'gps_active', 'screen_on_time_minutes', 'ambient_temp_c', 'water_pressure_atm', 'fall_detection_events'],
+    "smartfridge": ['temperature_current_c', 'compressor_on', 'door_open', 'defrost_cycle_active', 'ambient_temp_c', 'filter_life_percent']
+}
+PREDICTIVE_SEQUENCE_LENGTHS = {"smartphone": 56, "smartwatch": 168, "smartfridge": 336}
+FAILURE_MAPS = {
+    "smartphone": {1: "Battery Failure", 2: "CPU Overheating", 3: "Memory Failure"},
+    "smartwatch": {1: "Battery Failure", 2: "Heart Rate Sensor Failure", 3: "Water Seal Failure"},
+    "smartfridge": {1: "Compressor Failure", 2: "Thermostat Failure", 3: "Seal Failure"}
+}
 
-# --- HELPERS ---
-def get_status_info(pred_prob):
-    if pred_prob < 0.3: return "Normal", "normal"
-    elif pred_prob < 0.7: return "Warning", "warning"
-    else: return "Critical", "critical"
+def get_status_info(prob):
+    if prob < 0.3: return "Normal", "normal"
+    if prob < 0.7: return "Warning", "warning"
+    return "Critical", "critical"
 
-def load_artifacts(device):
-    cls_files = CLASSIFICATION_FILES[device]
-    df_class = pd.read_json(cls_files["dataset"])
-    df_metrics = pd.json_normalize(df_class["metrics"])
-    df_labels = pd.json_normalize(df_class["label"])
-    df_class = pd.concat([df_class.drop(columns=["metrics", "label", "recordId", "modelName"]), df_metrics, df_labels], axis=1)
-
-    scaler_class = joblib.load(cls_files["scaler"])
-    features_class = joblib.load(cls_files["features"])
-    model_class = load_model(cls_files["model"])
-
-    pred_files = PREDICTIVE_FILES[device]
-    df_pred_raw = pd.read_csv(pred_files["dataset"])
-    scaler_pred = joblib.load(pred_files["scaler"])
-    model_pred = load_model(pred_files["model"])
-    df_pred_numeric = df_pred_raw.select_dtypes(include=[np.number])
-    df_pred = df_pred_numeric.iloc[:, :scaler_pred.n_features_in_]
-
-    return df_class, scaler_class, features_class, model_class, df_pred, scaler_pred, model_pred
-
-# --- PRESENTATION MODE: Triggered Packets ---
-def generate_triggered_packet(event):
-    if event == "critical_cpu":
-        return {
-            "timestamp": pd.Timestamp.now().strftime('%H:%M:%S'),
-            "probability": 0.95,
-            "current_status_text": "Critical",
-            "final_status_text": "Critical",
-            "final_status_style": "critical",
-            "card_class_extra": "metric-card-upgraded",
-            "verdict_text": "🚨 Live demo event: CPU Overheating!",
-            "is_anomaly_predicted": True,
-            "first_anomaly_time": "+10 min",
-            "forecast": [{"Time": "+10 min", "Predicted Metric": "95.00"}],
-            "root_cause": "CPU Temperature"
-        }
-    elif event == "warning_battery":
-        return {
-            "timestamp": pd.Timestamp.now().strftime('%H:%M:%S'),
-            "probability": 0.65,
-            "current_status_text": "Warning",
-            "final_status_text": "Warning",
-            "final_status_style": "warning",
-            "card_class_extra": "metric-card-upgraded",
-            "verdict_text": "⚡ Live demo event: Battery Drain detected.",
-            "is_anomaly_predicted": True,
-            "first_anomaly_time": "+20 min",
-            "forecast": [{"Time": "+20 min", "Predicted Metric": "18.50"}],
-            "root_cause": "Battery Drain"
-        }
-    return None
-
-# --- SIMULATION FUNCTION ---
 def run_simulation(device):
-    df_class, scaler_class, features_class, model_class, df_pred, scaler_pred, model_pred = load_artifacts(device)
-    df_features_sim = df_class[features_class]
-    buffer_class = []
-    buffer_pred = df_pred.tail(SEQUENCE_LENGTH).values.tolist()
+    log_debug(f"Simulation script started for device: {device}")
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        class_conf = CLASSIFICATION_FILES[device]
+        pred_conf = PREDICTIVE_FILES[device]
+        failure_map = FAILURE_MAPS[device]
+        
+        log_debug("Loading classification artifacts...")
+        df_class_raw = pd.read_json(os.path.join(base_dir, '..', class_conf["dataset"]))
+        scaler_class = joblib.load(os.path.join(base_dir, '..', class_conf["scaler"]))
+        features_class_list = joblib.load(os.path.join(base_dir, '..', class_conf["features"]))
+        model_class = load_model(os.path.join(base_dir, '..', class_conf["model"]))
+        log_debug("Classification artifacts loaded.")
 
+        log_debug("Loading predictive artifacts...")
+        df_pred_raw = pd.read_csv(os.path.join(base_dir, '..', pred_conf["dataset"]))
+        features_pred_list = PREDICTIVE_FEATURE_CONFIG[device]
+        scaler_pred = joblib.load(os.path.join(base_dir, '..', pred_conf["scaler"]))
+        screener_model = joblib.load(os.path.join(base_dir, '..', pred_conf["screener_model"]))
+        why_model = joblib.load(os.path.join(base_dir, '..', pred_conf["why_model"]))
+        when_model = joblib.load(os.path.join(base_dir, '..', pred_conf["when_model"]))
+        log_debug("Predictive artifacts loaded.")
+        
+        log_debug("Preparing full datasets...")
+        df_metrics_full = pd.json_normalize(df_class_raw["metrics"])
+        df_class_full_prepared = pd.concat([df_class_raw.drop(columns=["metrics", "label", "modelName", "recordId", "deviceId", "deviceType", "timestamp"]), df_metrics_full], axis=1)
+        df_class_features = df_class_full_prepared[features_class_list]
+        df_pred_features = df_pred_raw[features_pred_list]
+
+        log_debug("Searching for a failure event...")
+        device_id_col = 'device_id' if 'device_id' in df_pred_raw.columns else 'watch_id'
+        failure_indices = df_pred_raw.index[df_pred_raw['failure_type'] != 0].tolist()
+        if not failure_indices:
+            start_index = 0
+        else:
+            failure_point = random.choice(failure_indices)
+            start_index = max(0, failure_point - 300)
+            log_debug(f"Failure found at index {failure_point}. Starting story at index {start_index}.")
+
+    except Exception as e:
+        log_debug(f"CRITICAL ERROR during setup: {e}")
+        print(json.dumps({"error": f"Failed during setup: {e}"}), flush=True)
+        return
+
+    buffer_class, buffer_pred = [], []
+    seq_len_class, seq_len_pred = CLASSIFICATION_SEQUENCE_LENGTH, PREDICTIVE_SEQUENCE_LENGTHS[device]
+
+    log_debug("Starting main simulation loop...")
     while True:
-        # 🔹 Step 1: Check for incoming commands (presentation mode)
-        if not sys.stdin.closed:
-            try:
-                if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-                    command = sys.stdin.readline().strip()
-                    triggered_packet = generate_triggered_packet(command)
-                    if triggered_packet:
-                        print(json.dumps(triggered_packet))
-                        sys.stdout.flush()
-                        time.sleep(2)
-                        continue
-            except Exception:
-                pass
+        for i in range(start_index, len(df_pred_features)):
+            class_index = i % len(df_class_features)
+            
+            row_class = df_class_features.iloc[class_index]
+            row_pred = df_pred_features.iloc[i]
 
-        # 🔹 Step 2: Normal ML simulation
-        for idx, row in df_features_sim.iterrows():
-            x_scaled = scaler_class.transform([row.values])[0]
-            buffer_class.append(x_scaled)
-            if len(buffer_class) > SEQUENCE_LENGTH:
-                buffer_class.pop(0)
+            buffer_class.append(row_class.values)
+            buffer_pred.append(row_pred.values)
 
-            if len(buffer_class) == SEQUENCE_LENGTH:
-                # Classification
-                x_input_class = np.array(buffer_class).reshape(1, SEQUENCE_LENGTH, len(features_class))
-                pred_prob = model_class.predict(x_input_class, verbose=0)[0][0]
-                current_status_text, current_status_style = get_status_info(pred_prob)
+            if len(buffer_class) > seq_len_class: buffer_class.pop(0)
+            if len(buffer_pred) > seq_len_pred: buffer_pred.pop(0)
 
-                # Prediction
-                temp_buffer_pred = buffer_pred.copy()
-                n_features_pred = scaler_pred.n_features_in_
-                future_predictions, is_anomaly_predicted, first_anomaly_time = [], False, None
+            if len(buffer_class) == seq_len_class and len(buffer_pred) == seq_len_pred:
+                scaled_class = scaler_class.transform(buffer_class)
+                input_class = np.array(scaled_class).reshape(1, seq_len_class, -1)
+                class_prob = model_class.predict(input_class, verbose=0)[0][0]
+                current_health_status, current_health_style = get_status_info(class_prob)
+                
+                scaled_pred = scaler_pred.transform(buffer_pred)
+                flattened_sequence = scaled_pred.reshape(1, -1)
+                
+                is_anomaly, predictive_prob = False, 0.0
+                
+                if isinstance(screener_model, IsolationForest):
+                    anomaly_score = screener_model.decision_function(flattened_sequence)[0]
+                    is_anomaly = anomaly_score < 0.0
+                    predictive_prob = 1 / (1 + max(0, anomaly_score))
+                elif hasattr(screener_model, 'predict_proba'):
+                    predictive_prob = screener_model.predict_proba(flattened_sequence)[0][1]
+                    is_anomaly = predictive_prob > 0.5
+                
+                if current_health_style == 'critical':
+                    predictive_prob = max(predictive_prob, 0.85)
+                    is_anomaly = True
 
-                for step in range(FUTURE_STEPS):
-                    seq_raw = np.array(temp_buffer_pred[-SEQUENCE_LENGTH:])
-                    seq_scaled = scaler_pred.transform(seq_raw)
-                    x_input_pred = seq_scaled.reshape(1, SEQUENCE_LENGTH, n_features_pred)
-                    pred_scaled = model_pred.predict(x_input_pred, verbose=0)
-                    dummy_row = np.zeros((1, n_features_pred))
-                    dummy_row[0, 0] = pred_scaled[0, 0]
-                    pred_unscaled = scaler_pred.inverse_transform(dummy_row)
-                    metric_pred = pred_unscaled[0, 0]
-                    time_str = f"+{(step+1)*10} min"
-                    future_predictions.append({"Time": time_str, "Predicted Metric": f"{metric_pred:.2f}"})
-                    if metric_pred > PREDICTIVE_ANOMALY_THRESHOLD:
-                        is_anomaly_predicted = True
-                        if first_anomaly_time is None:
-                            first_anomaly_time = time_str
-                    next_forecast_input = seq_raw[-1, :].tolist()
-                    next_forecast_input[0] = metric_pred
-                    temp_buffer_pred.append(next_forecast_input)
-                    temp_buffer_pred.pop(0)
+                root_cause, first_anomaly_time = "None", None
+                if is_anomaly:
+                    predicted_code = why_model.predict(flattened_sequence)[0]
+                    root_cause = failure_map.get(int(predicted_code), "Unknown Cause")
+                    time_hours = when_model.predict(flattened_sequence)[0]
+                    first_anomaly_time = f"+{int(abs(time_hours) * 60)} min"
 
-                # Final verdict
-                final_status_text, final_status_style = current_status_text, current_status_style
-                card_class_extra, verdict_text = "", "Status confirmed by predictive scan."
-                if is_anomaly_predicted and current_status_text == "Normal":
-                    final_status_text = "Warning"
-                    final_status_style = "warning"
-                    card_class_extra = "metric-card-upgraded"
-                    verdict_text = f"🚨 Status Upgraded! Anomaly predicted in {first_anomaly_time}."
-
-                # Build packet
                 data_packet = {
                     "timestamp": pd.Timestamp.now().strftime('%H:%M:%S'),
-                    "probability": float(pred_prob),
-                    "current_status_text": current_status_text,
-                    "final_status_text": final_status_text,
-                    "final_status_style": final_status_style,
-                    "card_class_extra": card_class_extra,
-                    "verdict_text": verdict_text,
-                    "is_anomaly_predicted": is_anomaly_predicted,
-                    "first_anomaly_time": first_anomaly_time,
-                    "forecast": future_predictions,
-                    "root_cause": "CPU Temperature" if pred_prob > 0.7 else "Battery Drain" if pred_prob > 0.5 else "None"
+                    "current_health_status": current_health_status,
+                    "current_health_style": current_health_style,
+                    "predictive_probability": float(predictive_prob),
+                    "is_anomaly_predicted": bool(is_anomaly),
+                    "root_cause": str(root_cause),
+                    "first_anomaly_time": first_anomaly_time
                 }
-
-                print(json.dumps(data_packet))
-                sys.stdout.flush()
-
-                new_pred_row = df_pred.iloc[idx].values.tolist()
-                buffer_pred.append(new_pred_row)
-                buffer_pred.pop(0)
-                time.sleep(2)
-
+                
+                print(json.dumps(data_packet), flush=True)
+                time.sleep(1.5)
+        
+        start_index = 0
+                
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        device_arg = sys.argv[1]
-        if device_arg in CLASSIFICATION_FILES:
-            run_simulation(device_arg)
-        else:
-            print(json.dumps({"error": f"Invalid device: {device_arg}"}))
-            sys.stdout.flush()
-    else:
-        print(json.dumps({"error": "No device specified."}))
-        sys.stdout.flush()
+    device_arg = sys.argv[1] if len(sys.argv) > 1 else "smartphone"
+    run_simulation(device_arg)
+
