@@ -6,10 +6,10 @@
 - Drisanth M (22MIC0139)
 - Darsh Marothi (22MID0333)
 
-# Samsung Aura – Autonomous Device Health & Support Ecosystem
+# Aura – Autonomous Device Health & Support Ecosystem
 
 ## Overview
-Samsung Aura is an always-on **device health companion** that monitors all Samsung devices — smartphones, TVs, appliances, and wearables — using multimodal AI.  
+Aura is an always-on **device health companion** that monitors all Samsung devices — smartphones, TVs, appliances, and wearables — using multimodal AI.  
 It predicts failures, performs remote fixes, and coordinates service **without human intervention**.  
 
 The solution is powered by a **multi-agent system** with specialized AI agents for:
@@ -106,9 +106,7 @@ After setting up and running both the **server** and the **client**, open the ap
 
 1. Navigate to the **Dashboard** page.  
 2. Select the **device** you wish to test.  
-3. Inside the device view, you can simulate two scenarios:  
-   - **CPU Fault Simulation** 🖥️  
-   - **Battery Fault Simulation** 🔋  
+3. Inside the device view, you can simulate real-time data ingestion.  
 
 👉 Choose a simulation of your choice.  
 
