@@ -108,7 +108,7 @@ This project consists of a **server**, a **client**, and a **Python environment*
 
 ## 🤖 Running Model Simulations Directly
 
-**For users who want to test the AI models directly without running the full web application, the **`<span class="selected">simulation_scripts</span>` folder contains standalone Python scripts for each device.
+For users who want to test the AI models directly without running the full web application, the **simulation_scripts** folder contains standalone Python scripts for each device.
 
 1. **Ensure your Python environment is activated.**
 2. **Navigate to the simulation scripts directory:**
