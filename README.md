@@ -143,9 +143,12 @@ After setting up and running both the **server** and the **client**, open the ap
 ### 🖼️ Dashboard Walkthrough (Screenshots go here)
 
 - **Dashboard:**
+  
   <img width="1919" height="902" alt="image" src="https://github.com/user-attachments/assets/fa1faa3e-1875-41c7-9055-0b0c711a2dcd" />
+  
 
 - **Device Selection:**
+  
   <img width="578" height="491" alt="image" src="https://github.com/user-attachments/assets/d7cadf80-f087-4fdc-b188-a61e3f4b6d35" />
 
 ---
