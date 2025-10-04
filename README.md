@@ -27,10 +27,12 @@ This ensures **proactive support**, reducing downtime, extending device lifespan
 
 ---
 
-# Demonstration Video
+# Submissions
 
+- **Demonstration Video:**
 You can click on this link to view a video which explains the working of our application:
 https://drive.google.com/file/d/14MWElS6rdMx7NB3bTYXWyxB_l_OrEv6T/view?usp=sharing
+
 
 ---
 
