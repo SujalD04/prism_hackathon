@@ -114,13 +114,13 @@ For users who want to test the AI models directly without running the full web a
 2. **Navigate to the simulation scripts directory:**
 
    ```
-   cd simulation_scripts
+   cd simulation_scripts/sim_scripts
 
    ```
 3. **Run the desired simulation script. For example:**
 
    ```
-   python run_smartphone_simulation.py
+   python SmartfridgePredNewSim.py
 
    ```
 
